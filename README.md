@@ -7,6 +7,7 @@ One central home for every skill I use across my AI tools — Claude, ChatGPT, G
 ```
 my_ai_skills/
 ├── skills/                      # One folder per skill
+│   ├── broll-finder/
 │   └── youtube-metadata-optimizer/
 │       ├── SKILL.md             # The skill itself (required)
 │       ├── references/          # Optional: longer docs the skill points to
@@ -44,6 +45,7 @@ Rules that keep skills portable:
 | Skill | What it does |
 |---|---|
 | [youtube-metadata-optimizer](skills/youtube-metadata-optimizer/SKILL.md) | Researches competitor videos and current YouTube SEO guidance, then writes 3 ranked titles, a description, and tags for a Simple Tech video. |
+| [broll-finder](skills/broll-finder/SKILL.md) | Finds free, real B-roll clip links from Pexels and Pixabay to illustrate a topic from a video script. |
 
 ## Using a skill in each tool
 
