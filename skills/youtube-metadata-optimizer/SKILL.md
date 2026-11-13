@@ -31,9 +31,16 @@ Don't ask about things you can reasonably infer from the brief or the channel co
 
 ## Step 2: Research competitor videos
 
-**Always open Chrome for this step if it is at all possible.** The `mcp__claude-in-chrome__*` tools load YouTube as a real logged-in browser, which is the only reliable way to see the data that actually matters: view counts, upload dates, subscriber counts, and full untruncated descriptions. Plain `WebFetch` on a youtube.com watch page frequently returns HTTP 429 or a stripped page, which silently reduces this step to guessing from search-result titles.
+**Use the web-search MCP server first.** Its two tools, `search_youtube` and `get_video_details` (they appear as `mcp__web-search__search_youtube` and `mcp__web-search__get_video_details`; load them with `ToolSearch` if they are deferred), pull real data from the YouTube Data API: views, likes, comments, channel subscribers, upload date, `views_per_day`, `views_to_subscribers_ratio`, duration, each video's own tags, and full descriptions. This is more reliable than reading YouTube pages, and unlike a logged-in browser it isn't skewed by personalization.
 
-The Chrome-first procedure:
+The web-search procedure:
+
+1. Call `search_youtube` once with a focused query for the video's main topic (`order: "relevance"`, `max_results: 15`, `published_within_days: 730`). YouTube allows only 100 searches a day across everything that uses this server (including the Video Pipeline board), so make at most one more search, and only if the first results are mostly off-topic or thin (for example `order: "viewCount"` or a reworded query). Expect some off-topic results, especially when sorting by views, and ignore them.
+2. Judge success by real signals, not raw views: `views_to_subscribers_ratio` (above 1 means the video beat its channel's size), `views_per_day`, and recency. A big channel's view count alone isn't evidence.
+3. Call `get_video_details` once with the 3-5 strongest relevant videos to read their full descriptions and tags. It doesn't use any of the daily searches.
+4. If a call fails (quota exceeded, connector missing, or errors after one retry), say so and move to Fallback 1. Don't keep retrying.
+
+**Fallback 1: Chrome.** Use it only if the web-search tools are missing from the session or fail after one retry, or to spot-check a specific video. The `mcp__claude-in-chrome__*` tools load YouTube as a real logged-in browser, which shows view counts, upload dates and full descriptions, but the logged-in session adds personalization bias. Plain `WebFetch` on a youtube.com watch page frequently returns HTTP 429 or a stripped page, so don't use it for this. The Chrome procedure:
 
 1. Load the browser tools in ONE `ToolSearch` call: `select:mcp__claude-in-chrome__tabs_context_mcp,mcp__claude-in-chrome__navigate,mcp__claude-in-chrome__get_page_text,mcp__claude-in-chrome__read_page,mcp__claude-in-chrome__tabs_create_mcp,mcp__claude-in-chrome__tabs_close_mcp`
 2. Call `tabs_context_mcp` first, then open a NEW tab — never hijack a tab the user is working in.
@@ -41,14 +48,15 @@ The Chrome-first procedure:
 4. Open the most relevant/highest-performing watch pages and `get_page_text` each one for the full title and description. Click "...more" if the description is collapsed.
 5. Close the tabs you opened when finished.
 
-Fall back to `WebSearch` + `WebFetch` ONLY if Chrome is genuinely unavailable — the tools are absent from the session entirely, or calls fail with connection errors after a couple of attempts. A blocked site or a pending site-approval prompt is not unavailability: wait for the approval rather than silently falling back.
+**Fallback 2:** Use `WebSearch` + `WebFetch` ONLY if both web-search and Chrome are genuinely unavailable — the tools are absent from the session entirely, or calls fail with connection errors after a couple of attempts. A blocked site or a pending site-approval prompt is not unavailability: wait for the approval rather than silently falling back.
 
 **If you do end up on the fallback path, say so explicitly in the final output** — state that view counts could not be verified and that the title patterns come from search-result titles only. Never present pattern-matched titles as if they were grounded in performance data.
 
 What to gather, either way:
 
 - 10-15 videos similar to the one being planned, favoring ones that look successful (high views relative to channel size, recent, from creators in a similar niche — AI/data/tech education)
-- Actual title phrasing and description structure/opening lines. Note: YouTube doesn't expose tags to viewers, so infer likely target keywords from repeated phrases across titles/descriptions rather than trying to read tags directly
+- Actual title phrasing and description structure/opening lines
+- Tags: the web-search tools return each video's real tags when the creator set them, so use those to find recurring tags. On the Chrome or WebSearch fallback, YouTube doesn't show tags to viewers, so infer likely target keywords from repeated phrases across titles and descriptions instead
 - Patterns: common title structures (numbers, brackets/parentheses, questions, "How to X", curiosity gaps, before/after framing), how top videos open their descriptions, typical description length and structure
 - Where the gap is: if every competitor uses the same framing, that saturation is itself a finding — an angle nobody is using may outperform matching the pack
 
@@ -104,4 +112,8 @@ Default to a **permalink** (pinned to a commit SHA), not a branch URL like `blob
 
 ## Presenting results
 
-Show all three deliverables together, clearly labeled. After presenting, briefly flag anything you inferred or assumed (e.g., "assumed this is a standalone video, not part of a series") so the user can correct it easily — and flag any research step that degraded to the fallback path.
+Show all three deliverables together, clearly labeled. Then:
+
+- Say which research path was used (web-search, Chrome, or the WebSearch fallback), how many videos were analyzed, and how many YouTube searches were used.
+- List the 3-5 competitor videos that most shaped the result, each with its link, views, and views-to-subscribers ratio, and one line on what it showed.
+- Briefly flag anything you inferred or assumed (e.g., "assumed this is a standalone video, not part of a series") so the user can correct it easily, and flag any research step that degraded to a fallback path.
